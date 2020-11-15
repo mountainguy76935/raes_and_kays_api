@@ -3,6 +3,7 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose')
 const bodyParser = require('body-parser')
+const upload = require('./server/util/image-upload');
 
 const adminRoutes = require('./server/routes/admin');
 
@@ -15,6 +16,8 @@ const MONGO_CLUSTER = process.env.MONGO_CLUSTER
 const DB_URI = `mongodb+srv://${MONGO_USER}:${MONGO_PASSWORD}@${MONGO_CLUSTER}`
 
 mongoose.set('useFindAndModify', false);
+
+app.use(upload.array('image'))
 
 app.use(bodyParser.json())
 

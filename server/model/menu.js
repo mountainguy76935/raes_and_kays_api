@@ -21,7 +21,7 @@ const MenuSchema = new Schema({
                 type: String,
                 required: true
             },
-            picture: {
+            image: {
                 type: String
             }
         }
@@ -53,19 +53,23 @@ const MenuSchema = new Schema({
         required: true
     },
     popup:
-        {
-            title: {
-                type: String,
-                required: true
-            },
-            description: {
-                type: String,
-                required: true
-            },
-            images: {
-                type: String
-            }
+    {
+        title: {
+            type: String,
+            required: true
+        },
+        description: {
+            type: String,
+            required: true
+        },
+        images: {
+            type: String
         }
+    },
+    disclaimer: {
+        type: String,
+        required: true
+    }
 })
 
-module.exports = mongoose.model('Menu', MenuSchema)
+module.exports = mongoose.model('Daily', MenuSchema)
