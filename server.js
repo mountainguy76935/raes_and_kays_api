@@ -17,7 +17,7 @@ const DB_URI = `mongodb+srv://${MONGO_USER}:${MONGO_PASSWORD}@${MONGO_CLUSTER}`
 
 mongoose.set('useFindAndModify', false);
 
-app.use(upload.array('image'))
+app.use(upload.fields([{name: 'carouselImage'}, {name: 'entreeImage'}]))
 
 app.use(bodyParser.json())
 

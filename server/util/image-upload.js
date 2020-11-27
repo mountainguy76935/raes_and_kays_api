@@ -10,7 +10,7 @@ aws.config.update({
   });
 
   const fileFilter = (req, file, cb) => {
-    console.log('here')
+    console.log('here', file)
     if (
         file.mimetype === 'image/png' ||
         file.mimetype === 'image/jpg' ||

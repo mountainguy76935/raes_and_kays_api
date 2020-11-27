@@ -4,9 +4,30 @@ const bcrypt = require('bcrypt');
 const aws = require("aws-sdk");
 
 const s3 = new aws.S3();
-const ObjectId = require('mongodb').ObjectID;
 
 const MENU_ID = process.env.MENU_ID;
+
+const deleteImage = (oldItems, newItems) => {
+    let resourceUrl;
+    let index;
+    for (let i = 0; i < oldItems.length; i++) {
+        index = newItems.findIndex(a => a.image === oldItems[i].image)
+        if (index < 0) {
+            resourceUrl = oldItems[i]['image'].split('/').slice(-1)[0];
+            const params = {
+                Bucket: process.env.S3_BUCKET_NAME,
+                Key: resourceUrl
+            }
+            s3.deleteObject(params, (err, data) => {
+                if (err) {
+                    console.log(err, err.stack);
+                } else {
+                    console.log(data);
+                }
+            })
+        }
+    }
+}
 
 exports.postLogin = (req, res, next) => {
     let password = req.body.password;
@@ -64,43 +85,31 @@ exports.getMenu = (req, res, next) => {
 }
 
 exports.postMenu = (req, res, next) => {
-    if (!req.files) {
-        imageUrl = 'none';
-    } else {
-        imageUrl = req.files.location;
-    }
+    console.log('files', req.files, req.body.carouselItems)
     let entreeItems = req.body.entreeItems
+    let carouselItems = req.body.carouselItems
+    let entreeFiles = req.files.entreeImage ? [...req.files.entreeImage] : []
+    let carouselFiles = req.files.carouselImage ? [...req.files.carouselImage] : []
     entreeItems = JSON.parse(entreeItems)
-    for (let i = 0; i < req.files.length; i++) {
-        let index = entreeItems.findIndex(a => a.imageName === req.files[i]['originalname'])
-        entreeItems[index]['image'] = req.files[i]['location']
+    carouselItems = JSON.parse(carouselItems)
+    for (let i = 0; i < entreeFiles.length; i++) {
+        let index = entreeItems.findIndex(a => a.imageName === entreeFiles[i]['originalname'])
+        entreeItems[index]['image'] = entreeFiles[i]['location']
         delete entreeItems[index]['imageName']
+    }
+    for (let i = 0; i < carouselFiles.length; i++) {
+        let index = carouselItems.findIndex(a => a.imageName === carouselFiles[i]['originalname'])
+        carouselItems[index]['image'] = carouselFiles[i]['location']
+        delete carouselItems[index]['imageName']
     }
     return Menu
         .findOne({ _id: MENU_ID })
         .then(menu => {
-            let oldItems = [...menu.entreeItems]
-            let resourceUrl;
-            let index;
-            for (let i = 0; i < oldItems.length; i++) {
-                index = entreeItems.findIndex(a => a.image === oldItems[i].image)
-                if (index < 0) {
-                    resourceUrl = oldItems[i]['image'].split('/').slice(-1)[0];
-                    const params = {
-                        Bucket: process.env.S3_BUCKET_NAME,
-                        Key: resourceUrl
-                    }
-                    s3.deleteObject(params, (err, data) => {
-                        if (err) {
-                            console.log(err, err.stack);
-                        } else {
-                            console.log(data);
-                        }
-                    })
-                }
-            }
+            deleteImage([...menu.entreeItems], entreeItems)
+            deleteImage([...menu.carouselItems], carouselItems)
             menu.openDates = JSON.parse(req.body.openDates);
             menu.entreeItems = entreeItems;
+            menu.carouselItems = carouselItems;
             menu.sideItems = JSON.parse(req.body.sideItems);
             menu.price = req.body.price;
             menu.description = req.body.description;

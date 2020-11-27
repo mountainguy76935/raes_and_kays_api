@@ -26,6 +26,17 @@ const MenuSchema = new Schema({
             }
         }
     ],
+    carouselItems: [
+        {
+            name: {
+                type: String,
+                required: true
+            },
+            image: {
+                type: String
+            }
+        }
+    ],
     sideItems: [
         {
             name: {
