@@ -2,6 +2,7 @@ const Menu = require('../model/menu.js');
 const User = require('../model/user.js');
 const bcrypt = require('bcrypt');
 const aws = require("aws-sdk");
+const jwt = require('jsonwebtoken');
 
 const s3 = new aws.S3();
 
@@ -48,7 +49,14 @@ exports.postLogin = (req, res, next) => {
                         error.statusCode = 401;
                         throw error
                     }
+                    const token = jwt.sign({
+                        userId: user._id.toString()
+                    },
+                        process.env.JWT_SECRET,
+                        { expiresIn: '1hr' }
+                    );
                     res.json({
+                        token: token,
                         success: true
                     })
                 })
@@ -85,42 +93,59 @@ exports.getMenu = (req, res, next) => {
 }
 
 exports.postMenu = (req, res, next) => {
-    console.log('files', req.files, req.body.carouselItems)
-    let entreeItems = req.body.entreeItems
-    let carouselItems = req.body.carouselItems
-    let entreeFiles = req.files.entreeImage ? [...req.files.entreeImage] : []
-    let carouselFiles = req.files.carouselImage ? [...req.files.carouselImage] : []
-    entreeItems = JSON.parse(entreeItems)
-    carouselItems = JSON.parse(carouselItems)
-    for (let i = 0; i < entreeFiles.length; i++) {
-        let index = entreeItems.findIndex(a => a.imageName === entreeFiles[i]['originalname'])
-        entreeItems[index]['image'] = entreeFiles[i]['location']
-        delete entreeItems[index]['imageName']
-    }
-    for (let i = 0; i < carouselFiles.length; i++) {
-        let index = carouselItems.findIndex(a => a.imageName === carouselFiles[i]['originalname'])
-        carouselItems[index]['image'] = carouselFiles[i]['location']
-        delete carouselItems[index]['imageName']
-    }
-    return Menu
-        .findOne({ _id: MENU_ID })
-        .then(menu => {
-            deleteImage([...menu.entreeItems], entreeItems)
-            deleteImage([...menu.carouselItems], carouselItems)
-            menu.openDates = JSON.parse(req.body.openDates);
-            menu.entreeItems = entreeItems;
-            menu.carouselItems = carouselItems;
-            menu.sideItems = JSON.parse(req.body.sideItems);
-            menu.price = req.body.price;
-            menu.description = req.body.description;
-            menu.popup = JSON.parse(req.body.popup);
-            menu.disclaimer = req.body.disclaimer;
-            menu
-                .save()
-                .then(() => {
-                    res.json({
-                        success: true
-                    })
+    let user = req.userId;
+    User
+        .findOne({
+            _id: user
+        })
+        .then(user => {
+            if (!user) {
+                let error = new Error('wrong credentials');
+                error.statusCode = 500
+                throw(error)
+            }
+            let entreeItems = req.body.entreeItems
+            let carouselItems = req.body.carouselItems
+            let entreeFiles = req.files.entreeImage ? [...req.files.entreeImage] : []
+            let carouselFiles = req.files.carouselImage ? [...req.files.carouselImage] : []
+            entreeItems = JSON.parse(entreeItems)
+            carouselItems = JSON.parse(carouselItems)
+            for (let i = 0; i < entreeFiles.length; i++) {
+                let index = entreeItems.findIndex(a => a.imageName === entreeFiles[i]['originalname'])
+                entreeItems[index]['image'] = entreeFiles[i]['location']
+                delete entreeItems[index]['imageName']
+            }
+            for (let i = 0; i < carouselFiles.length; i++) {
+                let index = carouselItems.findIndex(a => a.imageName === carouselFiles[i]['originalname'])
+                carouselItems[index]['image'] = carouselFiles[i]['location']
+                delete carouselItems[index]['imageName']
+            }
+            return Menu
+                .findOne({ _id: MENU_ID })
+                .then(menu => {
+                    deleteImage([...menu.entreeItems], entreeItems)
+                    deleteImage([...menu.carouselItems], carouselItems)
+                    menu.openDates = JSON.parse(req.body.openDates);
+                    menu.entreeItems = entreeItems;
+                    menu.carouselItems = carouselItems;
+                    menu.sideItems = JSON.parse(req.body.sideItems);
+                    menu.price = req.body.price;
+                    menu.description = req.body.description;
+                    menu.popup = JSON.parse(req.body.popup);
+                    menu.disclaimer = req.body.disclaimer;
+                    menu
+                        .save()
+                        .then(() => {
+                            res.json({
+                                success: true
+                            })
+                        })
+                        .catch(err => {
+                            if (!err.statusCode) {
+                                err.statusCode = 500
+                            }
+                            next(err)
+                        })
                 })
                 .catch(err => {
                     if (!err.statusCode) {
