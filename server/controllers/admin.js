@@ -110,6 +110,7 @@ exports.postMenu = (req, res, next) => {
             let carouselFiles = req.files.carouselImage ? [...req.files.carouselImage] : []
             entreeItems = JSON.parse(entreeItems)
             carouselItems = JSON.parse(carouselItems)
+            console.log(entreeFiles, entreeItems)
             for (let i = 0; i < entreeFiles.length; i++) {
                 let index = entreeItems.findIndex(a => a.imageName === entreeFiles[i]['originalname'])
                 entreeItems[index]['image'] = entreeFiles[i]['location']
